@@ -7,9 +7,11 @@
 gradio/
 
 ├─ app/
+
 │  └─ app.py                # Gradioприложение
 
 ├─ models/
+
 │  └─ model.joblib          # ваша сохранённая модель (скопируйте сюда)
 
 ├─ requirements.txt         # минимальные зависимости для запуска (pip)
