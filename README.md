@@ -63,4 +63,4 @@ pip list
 	python app.py
 	```
 
-![1](screens\1.png)
+![1](\screens\1.png)
