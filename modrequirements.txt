@@ -1,0 +1,8 @@
+numpy
+pandas
+scikit-learn==1.4.0
+joblib
+matplotlib
+seaborn
+plotly
+gradio
