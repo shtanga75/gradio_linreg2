@@ -63,4 +63,5 @@ pip list
 	python app.py
 	```
 
-![1](screens\1.png)
+<img src="screens\1.png" alt="UV1" style="zoom:67%;" />
+
