@@ -23,9 +23,9 @@ gradio/
 └─ tests/
 
    ├─ test_predict.py       # (бонус) тест для предсказания
-   
+
    └─ models/
-   
+
 	└─ model.joblib 
 
 
@@ -75,6 +75,8 @@ pip list
 	python app.py
 	```
 
-
 <img src="screens\1.png" alt="UV1" style="zoom:67%;" />
 
+Результат:
+
+<img src="screens\2.png" alt="UV1" style="zoom:67%;" />

@@ -50,6 +50,13 @@ try:
 except Exception:
     coefs = np.ravel(np.array(getattr(model, "coef_", np.zeros(X_train.shape[1]))))
 
+
+
+sorted_indices = np.argsort(np.abs(coefs))[::-1]
+# Берём 3 признака
+n_important = min(3, len(coefs))
+important_indices = sorted_indices[:n_important]
+
 most_important_idx = int(np.argmax(np.abs(coefs)))
 
 # LaTeX
@@ -58,34 +65,55 @@ intercept = round(float(getattr(model, "intercept_", 0.0)), 2)
 terms = [f"{coef_rounded[i]} \\cdot x_{i+1}" for i in range(len(coef_rounded))]
 equation_latex = r"$$y = " + " + ".join(terms) + f" + {intercept}$$"
 
-#функция предсказания для Gradio
+
 def predict_and_plot(x1, x2, x3, x4):
     x_in = np.array([x1, x2, x3, x4]).reshape(1, -1)
     # предсказание
     y_pred = float(model.predict(x_in)[0])
 
-    # scatter plot
-    fig, ax = plt.subplots(figsize=(6, 4))
-    ax.scatter(X_train[:, most_important_idx], y_train, alpha=0.6, label="Обучающие точки")
-    # пользовательская точка
-    ax.scatter(x_in[0, most_important_idx], y_pred, color="red", s=80, label="Ваш ввод (предсказание)")
-    ax.set_xlabel(f"Признак {most_important_idx + 1}")
-    ax.set_ylabel("Целевая переменная y")
-    ax.set_title("Scatter: наиболее важный признак vs y (обучение)")
-
+    #бонус:создаём несколько scatter plots для значимых признаков
+    n_plots = len(important_indices)
+    fig, axes = plt.subplots(n_plots, 1, figsize=(10, 5 * n_plots))
+    
+    if n_plots == 1:
+        axes = [axes]
+    
     mean_other = X_train.mean(axis=0)
-    xs = np.linspace(X_train[:, most_important_idx].min(), X_train[:, most_important_idx].max(), 100)
-    # Формируем матрицу для предсказаний
-    X_line = np.tile(mean_other, (len(xs), 1))
-    X_line[:, most_important_idx] = xs
-    ys_line = model.predict(X_line)
-    ax.plot(xs, ys_line, linestyle="--", linewidth=2, label="Линия регрессии (по одному признаку)")
+    
+    for i, feature_idx in enumerate(important_indices):
+        ax = axes[i]
+        
+        #обучающие точки
+        ax.scatter(X_train[:, feature_idx], y_train, alpha=0.6, label="Обучающие точки")
+        
+        #пользовательская точка
+        ax.scatter(x_in[0, feature_idx], y_pred, color="red", s=100, 
+                  label="Ваш ввод (предсказание)", edgecolors='black', linewidths=2, zorder=5)
+        
+        #линия регрессии для этого признака
+        xs = np.linspace(X_train[:, feature_idx].min(), X_train[:, feature_idx].max(), 100)
+        X_line = np.tile(mean_other, (len(xs), 1))
+        X_line[:, feature_idx] = xs
+        ys_line = model.predict(X_line)
+        ax.plot(xs, ys_line, linestyle="--", linewidth=2, color='orange',
+               label="Линия регрессии")
+        
+        #оформление
+        ax.set_xlabel(f"Признак x{feature_idx + 1}", fontsize=11)
+        ax.set_ylabel("Целевая переменная y", fontsize=11)
+        coef_value = coef_rounded[feature_idx]
+        ax.set_title(f"x{feature_idx + 1} (коэф. = {coef_value})", fontsize=12, fontweight='bold')
+        ax.legend(loc='best', fontsize=9)
+        ax.grid(True, alpha=0.3)
 
-    ax.legend()
     fig.tight_layout()
 
-    #предсказание
+    # Возвращаем предсказание
     return round(y_pred, 3), fig
+
+
+important_features_info = ", ".join([f"x{idx+1} (коэф. {coef_rounded[idx]})" 
+                                     for idx in important_indices])
 
 #Gradio
 description_md = (
