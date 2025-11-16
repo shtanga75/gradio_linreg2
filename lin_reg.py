@@ -13,6 +13,7 @@ Original file is located at
 
 from sklearn.datasets import make_regression
 import pandas as pd
+import numpy as np
 
 X, y = make_regression(n_samples=500, n_features=4, n_informative=2, random_state=212862)
 
@@ -122,3 +123,17 @@ import os
 os.makedirs("models", exist_ok=True) 
 joblib.dump(lin_reg, "models/model.joblib")
 
+#cохраняем данные для использования в Gradio
+os.makedirs("data", exist_ok=True)
+#cохраняем полные данные
+np.save("data/X_all.npy", X)
+np.save("data/y_all.npy", y)
+#cохраняем разбиение на train/test
+train.to_csv("data/train.csv", index=False)
+test.to_csv("data/test.csv", index=False)
+
+print("\n=== Данные сохранены ===")
+print("Модель: models/model.joblib")
+print("Данные: data/X_all.npy, data/y_all.npy")
+print("Обучающая выборка: data/train.csv")
+print("Тестовая выборка: data/test.csv")

@@ -9,8 +9,6 @@ import matplotlib.pyplot as plt
 import gradio as gr
 import pandas as pd
 
-from sklearn.datasets import make_regression
-from sklearn.model_selection import train_test_split
 from sklearn.metrics import r2_score
 
 import warnings
@@ -18,57 +16,58 @@ warnings.filterwarnings("ignore", category=UserWarning)
 
 
 MODEL_PATH = os.path.join("models", "model.joblib")
+TRAIN_DATA_PATH = os.path.join("data", "train.csv")
+TEST_DATA_PATH = os.path.join("data", "test.csv")
 
-X_all, y_all, coef_true = make_regression(
-    n_samples=500,
-    n_features=4,
-    n_informative=2,
-    noise=10.0,
-    coef=True,
-    random_state=212862
-)
-
-X_train, X_test, y_train, y_test = train_test_split(X_all, y_all, test_size=0.2, random_state=212862)
-'''idx = np.arange(X_all.shape[0])
-train_idx, test_idx = train_test_split(idx, shuffle=True, random_state=0, test_size=0.2)
-X_train = X_all[train_idx]
-y_train = y_all[train_idx]
-X_test = X_all[test_idx]
-y_test = y_all[test_idx]'''
-
+#проверка
 if not os.path.exists(MODEL_PATH):
-    raise FileNotFoundError(f"Модель не найдена: {MODEL_PATH}. Положите model.joblib в папку models/")
+    raise FileNotFoundError(f"Модель не найдена: {MODEL_PATH}. Запустите lin_reg.py для создания модели.")
 
+if not os.path.exists(TRAIN_DATA_PATH):
+    raise FileNotFoundError(f"Обучающие данные не найдены: {TRAIN_DATA_PATH}. Запустите lin_reg.py для создания данных.")
+
+if not os.path.exists(TEST_DATA_PATH):
+    raise FileNotFoundError(f"Тестовые данные не найдены: {TEST_DATA_PATH}. Запустите lin_reg.py для создания данных.")
+
+#Загрузка модели
 model = joblib.load(MODEL_PATH)
+
+#Загрузка данных
+train_data = pd.read_csv(TRAIN_DATA_PATH)
+test_data = pd.read_csv(TEST_DATA_PATH)
+
+X_train = train_data[['x1', 'x2', 'x3', 'x4']].values
+y_train = train_data['y'].values
+X_test = test_data[['x1', 'x2', 'x3', 'x4']].values
+y_test = test_data['y'].values
 
 #R^2
 y_test_pred = model.predict(X_test)
 r2 = r2_score(y_test, y_test_pred)
 
-
 try:
     coefs = np.array(model.coef_)
 except Exception:
-    coefs = np.ravel(np.array(getattr(model, "coef_", np.zeros(X_all.shape[1]))))
+    coefs = np.ravel(np.array(getattr(model, "coef_", np.zeros(X_train.shape[1]))))
 
-most_important_idx = int(np.argmax(np.abs(coefs)))  # индекс 0-based
+most_important_idx = int(np.argmax(np.abs(coefs)))
 
-#LaTeX
+# LaTeX
 coef_rounded = [round(float(c), 2) for c in coefs]
 intercept = round(float(getattr(model, "intercept_", 0.0)), 2)
-terms = [f"{coef_rounded[i]} x_{i+1}" for i in range(len(coef_rounded))]
-equation_latex = r"$y = " + " + ".join(terms) + f" + {intercept}$"
+terms = [f"{coef_rounded[i]} \\cdot x_{i+1}" for i in range(len(coef_rounded))]
+equation_latex = r"$$y = " + " + ".join(terms) + f" + {intercept}$$"
 
 #функция предсказания для Gradio
 def predict_and_plot(x1, x2, x3, x4):
     x_in = np.array([x1, x2, x3, x4]).reshape(1, -1)
-    #предсказание
+    # предсказание
     y_pred = float(model.predict(x_in)[0])
 
-    #scatter plot
+    # scatter plot
     fig, ax = plt.subplots(figsize=(6, 4))
     ax.scatter(X_train[:, most_important_idx], y_train, alpha=0.6, label="Обучающие точки")
-    #пользовательская точка
+    # пользовательская точка
     ax.scatter(x_in[0, most_important_idx], y_pred, color="red", s=80, label="Ваш ввод (предсказание)")
     ax.set_xlabel(f"Признак {most_important_idx + 1}")
     ax.set_ylabel("Целевая переменная y")
@@ -76,7 +75,7 @@ def predict_and_plot(x1, x2, x3, x4):
 
     mean_other = X_train.mean(axis=0)
     xs = np.linspace(X_train[:, most_important_idx].min(), X_train[:, most_important_idx].max(), 100)
-    #Формируем матрицу для предсказаний
+    # Формируем матрицу для предсказаний
     X_line = np.tile(mean_other, (len(xs), 1))
     X_line[:, most_important_idx] = xs
     ys_line = model.predict(X_line)
@@ -85,13 +84,13 @@ def predict_and_plot(x1, x2, x3, x4):
     ax.legend()
     fig.tight_layout()
 
-    #Возвращаем предсказание
+    #предсказание
     return round(y_pred, 3), fig
 
 #Gradio
 description_md = (
-    f"**R² на тестовой выборке:** {r2:.3f}  \n\n"
-    f"**Уравнение регрессии:**  \n\n"
+    f"**R² на тестовой выборке:** {r2:.3f}\n\n"
+    f"**Уравнение регрессии:**\n\n"
     f"{equation_latex}"
 )
 
